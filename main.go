@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -43,7 +44,7 @@ func main() {
 		for scanner.Scan() {
 			rawSql := strings.Replace(scanner.Text(), "\"", "", -1)
 			rawSql = strings.Replace(rawSql, "autoincrement", "", -1)
-			rawSql = strings.Replace(rawSql, "index", "", -1)
+			rawSql = strings.Replace(rawSql, "index", "sortIndex", -1)
 			rawSql = strings.Replace(rawSql, ";", "", -1)
 
 			result, err := sqlparser.Parse(rawSql)
@@ -51,6 +52,7 @@ func main() {
 			if err == nil {
 				extractClass(result)
 			} else {
+				fmt.Println(rawSql)
 				check(err)
 				continue
 			}
@@ -72,9 +74,13 @@ func extractClass(sqlNode sqlparser.SQLNode) {
 		return
 	}
 	prefix := "M"
-	tableName := strings.Title(stringUp.CamelCase(string(node.Name)))
-	tableText := fmt.Sprintf("class %s%s : Mappable {", prefix, tableName)
+	tableName := prefix + strings.Title(stringUp.CamelCase(string(node.Name)))
+
+	fileName := fmt.Sprintf("/tmp/%s.swift", tableName)
+
+	tableText := fmt.Sprintf("class %s : Object {", tableName)
 	fmt.Println(tableText)
+	tableText = "import RealmSwift\n\n" + tableText
 	for _, col := range node.ColumnDefinitions {
 		colCCName := stringUp.CamelCase(col.ColName)
 		var colType string = col.ColType
@@ -95,10 +101,15 @@ func extractClass(sqlNode sqlparser.SQLNode) {
 			colType = "Bool"
 			colValue = "false"
 		}
-		columnText := fmt.Sprintf(" var %s: %s = %s", colCCName, colType, colValue)
+		columnText := fmt.Sprintf("\tdynamic var %s: %s = %s", colCCName, colType, colValue)
+		tableText += "\n" + columnText
 		fmt.Println(columnText)
 	}
+	tableText += "\n" + "}"
 	fmt.Println("}")
+	d1 := []byte(tableText)
+	err := ioutil.WriteFile(fileName, d1, 0644)
+	check(err)
 }
 
 func init() {
