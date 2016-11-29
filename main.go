@@ -71,14 +71,34 @@ func extractClass(sqlNode sqlparser.SQLNode) {
 	if !ok {
 		return
 	}
-	tableName := stringUp.CamelCase(string(node.Name))
-	tableText := fmt.Sprintf("TableName: %s", tableName)
+	prefix := "M"
+	tableName := strings.Title(stringUp.CamelCase(string(node.Name)))
+	tableText := fmt.Sprintf("class %s%s : Mappable {", prefix, tableName)
 	fmt.Println(tableText)
 	for _, col := range node.ColumnDefinitions {
 		colCCName := stringUp.CamelCase(col.ColName)
-		columnText := fmt.Sprintf("   ColumnName: %s ColType: %s -> %s", col.ColName, col.ColType, colCCName)
+		var colType string = col.ColType
+		var colValue string = "\"\""
+		switch col.ColType {
+		case "integer":
+			colType = "Int"
+			colValue = "0"
+		case "varchar", "text":
+			colType = "String"
+		case "datetime":
+			colType = "Date"
+			colValue = "Date()"
+		case "float":
+			colType = "Float"
+			colValue = "0.0"
+		case "tinyint(1)":
+			colType = "Bool"
+			colValue = "false"
+		}
+		columnText := fmt.Sprintf(" var %s: %s = %s", colCCName, colType, colValue)
 		fmt.Println(columnText)
 	}
+	fmt.Println("}")
 }
 
 func init() {
