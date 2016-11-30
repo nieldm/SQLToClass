@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -11,6 +12,8 @@ import (
 	"github.com/etgryphon/stringUp"
 	"github.com/ogier/pflag"
 	"github.com/xwb1989/sqlparser"
+
+	"./templates"
 )
 
 //flags
@@ -73,45 +76,38 @@ func extractClass(sqlNode sqlparser.SQLNode) {
 	if !ok {
 		return
 	}
-	prefix := "M"
-	tableName := prefix + strings.Title(stringUp.CamelCase(string(node.Name)))
 
-	fileName := fmt.Sprintf("/tmp/%s.swift", tableName)
+	tableName := string(node.Name)
 
-	tableText := fmt.Sprintf("class %s : Object {", tableName)
-	fmt.Println(tableText)
-	tableText = "import RealmSwift\n\n" + tableText
+	var fields []string
+	var fieldTypes []string
+
 	for _, col := range node.ColumnDefinitions {
-		colCCName := stringUp.CamelCase(col.ColName)
-		var colType string = col.ColType
-		var colValue string = "\"\""
-		switch col.ColType {
-		case "integer":
-			colType = "Int"
-			colValue = "0"
-		case "varchar", "text":
-			colType = "String"
-		case "datetime":
-			colType = "Date"
-			colValue = "Date()"
-		case "float":
-			colType = "Float"
-			colValue = "0.0"
-		case "tinyint(1)":
-			colType = "Bool"
-			colValue = "false"
-		}
-		columnText := fmt.Sprintf("\tdynamic var %s: %s = %s", colCCName, colType, colValue)
-		tableText += "\n" + columnText
-		fmt.Println(columnText)
+		fields = append(fields, col.ColName)
+		fieldTypes = append(fieldTypes, col.ColType)
 	}
-	tableText += "\n" + "}"
-	fmt.Println("}")
-	d1 := []byte(tableText)
-	err := ioutil.WriteFile(fileName, d1, 0644)
-	check(err)
+	buildTemplate(tableName, fields, fieldTypes)
 }
 
 func init() {
 	pflag.StringVarP(&sql, "sql", "s", "", "SQL file to Parse")
+}
+
+func buildTemplate(tableName string, fields []string, fieldTypes []string) {
+	var buf bytes.Buffer
+	templates.WriteBuild(&buf, tableName, fields, fieldTypes)
+	fmt.Printf("%s", buf.Bytes())
+	writeToFile(tableName, buf.Bytes())
+}
+
+func writeToFile(tableName string, d1 []byte) {
+	fileNameRaw := strings.Title(stringUp.CamelCase(tableName))
+	fileName := fmt.Sprintf("/tmp/%s.swift", fileNameRaw)
+	err := ioutil.WriteFile(fileName, d1, 0644)
+	check(err)
+}
+
+func testTemplate() {
+	fmt.Printf("%s\n", templates.Hello("Foo"))
+	fmt.Printf("%s\n", templates.Hello("Bar"))
 }
