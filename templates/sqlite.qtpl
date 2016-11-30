@@ -1,12 +1,35 @@
+{% import "github.com/etgryphon/stringUp" %}
 {% func Build(tableName string, fields []string, fieldTypes []string) %}
-
 import SQLite
 
 let db = try Connection("path/to/db.sqlite3")
 
 let users = Table("{%s tableName %}")
-{% for i, field := range fields %}
-let id = Expression<{%s fieldTypes[i] %}>("{%s field %}")
-{% endfor %}
 
+{% collapsespace %}
+{% for i, field := range fields %}
+  {%= makeVarLine(field, fieldTypes[i]) %}
+{% endfor %}
+{% endcollapsespace %}
+{% endfunc %}
+{% func makeVarLine(field string, fieldType string) %}
+{% collapsespace %}
+  {% code
+    varName := stringUp.CamelCase(field)
+    var colType string = fieldType
+    switch fieldType {
+    case "integer":
+      colType = "Int"
+    case "varchar", "text":
+      colType = "String"
+    case "datetime":
+      colType = "Date"
+    case "float":
+      colType = "Float"
+    case "tinyint(1)":
+      colType = "Bool"
+    }
+  %}
+let {%s varName %} = Expression<{%s colType %}>("{%s field %}")
+{% endcollapsespace %}
 {% endfunc %}
