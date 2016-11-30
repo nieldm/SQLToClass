@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -11,6 +12,8 @@ import (
 	"github.com/etgryphon/stringUp"
 	"github.com/ogier/pflag"
 	"github.com/xwb1989/sqlparser"
+
+	"./templates"
 )
 
 //flags
@@ -27,6 +30,7 @@ func check(e error) {
 func main() {
 	pflag.Parse()
 
+	testTemplate()
 	fmt.Println("SQL to Realm.swift Parser")
 
 	files := strings.Split(sql, ",")
@@ -114,4 +118,14 @@ func extractClass(sqlNode sqlparser.SQLNode) {
 
 func init() {
 	pflag.StringVarP(&sql, "sql", "s", "", "SQL file to Parse")
+}
+
+func testTemplate() {
+	fmt.Printf("%s\n", templates.Hello("Foo"))
+	fmt.Printf("%s\n", templates.Hello("Bar"))
+	fields := []string{"Kate", "Go", "John", "Brad"}
+	fieldTypes := []string{"Int", "String", "String", "Int"}
+	var buf bytes.Buffer
+	templates.WriteBuild(&buf, "test", fields, fieldTypes)
+	fmt.Printf("%s", buf.Bytes())
 }

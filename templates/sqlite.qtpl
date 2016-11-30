@@ -1,0 +1,12 @@
+{% func Build(tableName string, fields []string, fieldTypes []string) %}
+
+import SQLite
+
+let db = try Connection("path/to/db.sqlite3")
+
+let users = Table("{%s tableName %}")
+{% for i, field := range fields %}
+let id = Expression<{%s fieldTypes[i] %}>("{%s field %}")
+{% endfor %}
+
+{% endfunc %}
